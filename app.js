@@ -1,88 +1,69 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sira - Recetario Agroindustrial</title>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics.js";
+import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    <div class="container">
-        <header>
-            <h1>Sira: Control de Procesamiento</h1>
-            <p>Registro de Valor Agregado por Productor</p>
-        </header>
+const firebaseConfig = {
+  apiKey: "AIzaSyCUybRrA_A8xMVlFuXRYbO2w1OyHoAexGI",
+  authDomain: "sembranet.firebaseapp.com",
+  projectId: "sembranet",
+  storageBucket: "sembranet.firebasestorage.app",
+  messagingSenderId: "335597209535",
+  appId: "1:335597209535:web:e986829fa6dc91a272c30a",
+  measurementId: "G-KCVD57P6EH"
+};
 
-        <form id="registroForm">
-            <fieldset>
-                <legend>1. Parámetros del Producto (Contexto)</legend>
-                <div class="form-group">
-                    <label>Nombre Común y Científico</label>
-                    <input type="text" id="producto" placeholder="Ej. Mango (Mangifera indica)" required>
-                </div>
-                <div class="form-group">
-                    <label>URL Imagen del Producto Fresco</label>
-                    <input type="url" id="imgProducto" placeholder="Enlace de la imagen">
-                </div>
-                <div class="grid-form">
-                    <div class="form-group">
-                        <label>Temporada de Disponibilidad</label>
-                        <input type="text" id="temporada" placeholder="Ej. Abril - Agosto">
-                    </div>
-                    <div class="form-group">
-                        <label>Región de Producción</label>
-                        <input type="text" id="region" placeholder="Ej. Sur de México">
-                    </div>
-                </div>
-            </fieldset>
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+const db = getFirestore(app); 
 
-            <fieldset>
-                <legend>2. Parámetros de la Receta (Instrucción)</legend>
-                <div class="form-group">
-                    <label>Nombre de la Receta / Derivado</label>
-                    <input type="text" id="nombreReceta" placeholder="Ej. Mermelada artesanal" required>
-                </div>
-                <div class="form-group">
-                    <label>URL Imagen del Proceso/Final</label>
-                    <input type="url" id="imgProceso" placeholder="Enlace de la foto final">
-                </div>
-                <div class="form-group">
-                    <label>Proceso Paso a Paso (Manual Técnico)</label>
-                    <textarea id="instrucciones" rows="6" placeholder="Secuencia numerada, tiempos, temperaturas e indicadores de error..."></textarea>
-                </div>
-                <div class="form-group">
-                    <label>Utensilios y Equipo</label>
-                    <input type="text" id="equipo" placeholder="Ej. Ollas, refractómetro, frascos esterilizados">
-                </div>
-            </fieldset>
+const form = document.getElementById('registroForm');
 
-            <fieldset>
-                <legend>3. Parámetros Técnicos y Calidad (Control)</legend>
-                <div class="grid-form">
-                    <div class="form-group">
-                        <label>Contenido de Azúcar (°Brix)</label>
-                        <input type="number" id="brix" step="0.1" placeholder="Ej. 65">
-                    </div>
-                    <div class="form-group">
-                        <label>Nivel de Acidez (pH)</label>
-                        <input type="number" id="ph" step="0.01" placeholder="Ej. 3.4">
-                    </div>
-                    <div class="form-group">
-                        <label>Rendimiento Final (kg/L)</label>
-                        <input type="number" id="rendimiento" step="0.01">
-                    </div>
-                    <div class="form-group">
-                        <label>Costo Total ($)</label>
-                        <input type="number" id="costo" step="0.01">
-                    </div>
-                </div>
-            </fieldset>
+if (form) {
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
 
-            <button type="submit" id="btnGuardar">Guardar Registro en Firebase</button>
-        </form>
-    </div>
+        const btn = document.getElementById('btnGuardar');
+        btn.disabled = true;
+        btn.innerText = "Registrando Proceso...";
 
-    <script type="module" src="app.js"></script>
-</body>
-</html>
+        // Objeto basado estrictamente en el recetario agroindustrial
+        const registroTecnico = {
+            // 1. Parámetros Generales
+            productoNombre: document.getElementById('producto').value,
+            fotoMateriaPrima: document.getElementById('imgProducto').value,
+            temporada: document.getElementById('temporada').value,
+            region: document.getElementById('region').value,
+
+            // 2. Parámetros Receta
+            recetaNombre: document.getElementById('nombreReceta').value,
+            fotoProcesoFinal: document.getElementById('imgProceso').value,
+            instrucciones: document.getElementById('instrucciones').value,
+            equipoUtilizado: document.getElementById('equipo').value,
+
+            // 3. Parámetros Técnicos
+            brix: parseFloat(document.getElementById('brix').value) || 0,
+            ph: parseFloat(document.getElementById('ph').value) || 0,
+            rendimientoFinal: parseFloat(document.getElementById('rendimiento').value) || 0,
+            costoTotal: parseFloat(document.getElementById('costo').value) || 0,
+            
+            fechaCaptura: serverTimestamp() 
+        };
+
+        try {
+            // Guardamos en la colección "recetario_tecnico"
+            const docRef = await addDoc(collection(db, "recetario_tecnico"), registroTecnico);
+            
+            console.log("¡Guardado! ID:", docRef.id);
+            alert("✅ Registro Agroindustrial Exitoso\nID: " + docRef.id);
+            
+            form.reset(); 
+        } catch (error) {
+            console.error("Error al guardar:", error);
+            alert("❌ Error: No se pudo guardar la información.");
+        } finally {
+            btn.disabled = false;
+            btn.innerText = "Guardar Registro en Firebase";
+        }
+    });
+}
